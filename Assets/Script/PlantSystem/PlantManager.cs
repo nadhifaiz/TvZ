@@ -6,7 +6,16 @@ public class PlantManager : MonoBehaviour
     [Header("Plant Settings")]
     [SerializeField] private GameObject plantPrefab;
     [SerializeField] private GameObject plantPrefab2;
-    [SerializeField] private GridManager gridManager;
+    [SerializeField] private GameObject plantPrefab3;
+
+    private GridManager gridManager;
+    private ResourceManager resourceManager;
+
+    private void Awake()
+    {
+        gridManager = FindAnyObjectByType<GridManager>();
+        resourceManager = FindAnyObjectByType<ResourceManager>();
+    }
 
     private int selectedPlantIndex = -1;
     private bool isPlantingMode = false;
@@ -27,8 +36,7 @@ public class PlantManager : MonoBehaviour
     {
         if (isPlantingMode && selectedPlantIndex == plantIndex)
         {
-            isPlantingMode = false;
-            selectedPlantIndex = -1;
+            ResetPlantingMode();
             Debug.Log("Exited planting mode.");
         }
         else
@@ -54,24 +62,49 @@ public class PlantManager : MonoBehaviour
             return;
         }
 
-        Vector3 spawnPosition = gridManager.GetCellCenterWorld(mousePosition);
+        GameObject selectedPlant = null;
+
         switch (selectedPlantIndex)
         {
             case 0:
-                Instantiate(plantPrefab, spawnPosition, Quaternion.identity);
+                selectedPlant = plantPrefab;
                 break;
             case 1:
-                Instantiate(plantPrefab2, spawnPosition, Quaternion.identity);
+                selectedPlant = plantPrefab2;
+                break;
+            case 2:
+                selectedPlant = plantPrefab3;
                 break;
             default:
                 Debug.LogError("Invalid plant index selected.");
                 return;
         }
 
+        Plant newPlant = selectedPlant.GetComponent<Plant>();
+
+        if (newPlant == null || resourceManager == null)
+        {
+            Debug.LogError("Selected plant prefab does not have a Plant component or ResourceManager not found!");
+            ResetPlantingMode();
+            return;
+        }
+
+        if (!resourceManager.SpendSun(newPlant.Cost))
+        {
+            Debug.Log($"Not enough Sun to plant. Required: {newPlant.Cost}, Available: {resourceManager.GetCurrentSun()}");
+            ResetPlantingMode();
+            return;
+        }
+
+        Vector3 spawnPosition = gridManager.GetCellCenterWorld(mousePosition);
+        Instantiate(selectedPlant, spawnPosition, Quaternion.identity);
         gridManager.SetCellOccupied(mousePosition, true);
         Debug.Log($"Planted Plant {selectedPlantIndex + 1} at {spawnPosition}");
+        ResetPlantingMode();
+    }
 
-        // Bug 2 fix: reset planting mode setelah berhasil nanam
+    private void ResetPlantingMode()
+    {
         isPlantingMode = false;
         selectedPlantIndex = -1;
     }
