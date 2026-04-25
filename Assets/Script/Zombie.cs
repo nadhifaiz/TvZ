@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Zombie : MonoBehaviour, IDamageAble
@@ -8,9 +9,17 @@ public class Zombie : MonoBehaviour, IDamageAble
     [SerializeField] private int damage = 10;
     [SerializeField] private float attackInterval = 3f; // Serangan per detik
 
+    // Events
+    public event Action OnDied;
+
+    // Internal state
     private float attackTimer;
     private IDamageAble currentTarget;
     private bool isAttacking;
+
+    [Header("Zombie Goals")]
+    [SerializeField] private Vector2 goalPositionMin;
+    [SerializeField] private Vector2 goalPositionMax;
 
     private void Update()
     {
@@ -24,6 +33,8 @@ public class Zombie : MonoBehaviour, IDamageAble
         {
             MoveLeft();
         }
+
+        OnGoals();
     }
 
     private void MoveLeft()
@@ -76,6 +87,18 @@ public class Zombie : MonoBehaviour, IDamageAble
 
     public void Die()
     {
+        OnDied?.Invoke();
         Destroy(gameObject);
+    }
+
+    public void OnGoals()
+    {
+        if (transform.position.x >= goalPositionMin.x && transform.position.x <= goalPositionMax.x &&
+            transform.position.y >= goalPositionMin.y && transform.position.y <= goalPositionMax.y)
+        {
+            Debug.Log($"{name} mencapai tujuan dan menghilang!");
+            GameManager.Instance.TriggerLose();
+            Destroy(gameObject);
+        }
     }
 }

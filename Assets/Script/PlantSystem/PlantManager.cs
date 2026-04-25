@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System;
 
 public class PlantManager : MonoBehaviour
 {
@@ -10,6 +11,8 @@ public class PlantManager : MonoBehaviour
 
     private GridManager gridManager;
     private ResourceManager resourceManager;
+
+    public static event Action<bool, int> OnPlantingModeChanged;
 
     private void Awake()
     {
@@ -43,6 +46,7 @@ public class PlantManager : MonoBehaviour
         {
             selectedPlantIndex = plantIndex;
             isPlantingMode = true;
+            OnPlantingModeChanged?.Invoke(true, selectedPlantIndex);
             Debug.Log($"Selected Plant {selectedPlantIndex + 1} for planting.");
         }
     }
@@ -107,5 +111,6 @@ public class PlantManager : MonoBehaviour
     {
         isPlantingMode = false;
         selectedPlantIndex = -1;
+        OnPlantingModeChanged?.Invoke(false, -1);
     }
 }

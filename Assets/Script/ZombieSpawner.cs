@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -9,10 +10,15 @@ public class ZombieSpawner : MonoBehaviour
     [SerializeField] private float spawnInterval = 5f;
 
     [Header("Tilemap Settings")]
-    [SerializeField] private Tilemap spawnTilemap; // Tilemap khusus zombie spawn
-    [SerializeField] private float zombieHeight = 1f;
+    [SerializeField] private Tilemap spawnTilemap;
+
+    // Dipanggil WaveManager setiap ada zombie mati
+    public event Action OnZombieDied;
 
     private List<Vector3> spawnPoints = new List<Vector3>();
+    private int zombiesSpawnedThisWave = 0;
+    private int zombiesAliveThisWave = 0;
+    private int zombieLimit = 0;
 
     private void Start()
     {
@@ -27,29 +33,36 @@ public class ZombieSpawner : MonoBehaviour
         if (spawnPoints.Count == 0)
         {
             Debug.LogError("ZombieSpawner: Tidak ada tile di spawnTilemap!");
-            return;
         }
-
-        InvokeRepeating(nameof(SpawnZombie), spawnInterval, spawnInterval);
     }
 
+    // ── Public API untuk WaveManager ───────────────────────
+    public void StartSpawning(int limit)
+    {
+        zombiesSpawnedThisWave = 0;
+        zombiesAliveThisWave = 0;
+        zombieLimit = limit;
+
+        InvokeRepeating(nameof(SpawnZombie), 0f, spawnInterval);
+    }
+
+    public void StopSpawning()
+    {
+        CancelInvoke(nameof(SpawnZombie));
+    }
+
+    // ── Internal ────────────────────────────────────────────
     private void CollectSpawnPoints()
     {
-        // Scan semua cell dalam bounds tilemap
         BoundsInt bounds = spawnTilemap.cellBounds;
 
         foreach (Vector3Int cellPos in bounds.allPositionsWithin)
         {
             if (!spawnTilemap.HasTile(cellPos)) continue;
 
-            // Ambil world position center cell
             Vector3 worldPos = spawnTilemap.GetCellCenterWorld(cellPos);
-
-            // Offset Y ke atas sebesar setengah tinggi zombie
-            worldPos.y += zombieHeight / 2f;
-
+            worldPos.y += 0.5f;
             spawnPoints.Add(worldPos);
-            Debug.Log($"Spawn point registered at: {worldPos}");
         }
 
         Debug.Log($"Total spawn points: {spawnPoints.Count}");
@@ -57,10 +70,35 @@ public class ZombieSpawner : MonoBehaviour
 
     private void SpawnZombie()
     {
-        // Random pilih salah satu spawn point
-        Vector3 spawnPosition = spawnPoints[Random.Range(0, spawnPoints.Count)];
+        // Sudah capai limit, stop spawn
+        if (zombiesSpawnedThisWave >= zombieLimit)
+        {
+            StopSpawning();
+            return;
+        }
 
-        Instantiate(zombiePrefab, spawnPosition, Quaternion.identity);
-        Debug.Log($"Zombie spawned at: {spawnPosition}");
+        Vector3 spawnPosition = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Count)];
+        GameObject zombie = Instantiate(zombiePrefab, spawnPosition, Quaternion.identity);
+
+        zombiesSpawnedThisWave++;
+        zombiesAliveThisWave++;
+
+        // Subscribe ke event mati zombie
+        Zombie health = zombie.GetComponent<Zombie>();
+        if (health != null)
+            health.OnDied += HandleZombieDied;
+
+        Debug.Log($"Zombie spawned ({zombiesSpawnedThisWave}/{zombieLimit})");
     }
+
+    private void HandleZombieDied()
+    {
+        zombiesAliveThisWave--;
+        OnZombieDied?.Invoke();
+
+        Debug.Log($"Zombie mati. Sisa alive: {zombiesAliveThisWave}");
+    }
+
+    public bool AllZombiesDead()
+        => zombiesSpawnedThisWave >= zombieLimit && zombiesAliveThisWave <= 0;
 }

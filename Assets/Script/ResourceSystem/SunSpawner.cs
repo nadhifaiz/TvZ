@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Spawner : MonoBehaviour
+public class SunSpawner : MonoBehaviour
 {
     [Header("Spawner Settings")]
     [SerializeField] private GameObject objectPrefab;
