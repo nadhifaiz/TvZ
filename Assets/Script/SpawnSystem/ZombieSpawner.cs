@@ -13,9 +13,6 @@ public class ZombieSpawner : MonoBehaviour, IWaveBehaviour
     [Header("Tilemap Settings")]
     [SerializeField] private Tilemap spawnTilemap;
 
-    // Dipanggil WaveManager setiap ada zombie mati
-    public event Action OnZombieDied;
-
     private List<Vector3> spawnPoints = new List<Vector3>();
     private int zombiesSpawnedThisWave = 0;
     private int zombiesAliveThisWave = 0;
