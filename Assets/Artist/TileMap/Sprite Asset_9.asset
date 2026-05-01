@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: Paving
+  m_Name: Sprite Asset_9
   m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.Tilemaps.Tile
-  m_Sprite: {fileID: 4937329723565262831, guid: 96a6c3f50f59eb94ea63d101f3692947, type: 3}
+  m_Sprite: {fileID: -6356149147356269057, guid: 0b9ed28d495464242b890e38bbfd3126, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1

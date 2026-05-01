@@ -1,41 +1,52 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class WaveManager : MonoBehaviour
 {
     [Header("Wave Settings")]
-    [SerializeField] private int totalWaves = 10;
-    [SerializeField] private int totalZombiesPerWave = 20;
+    [SerializeField] private int totalWaves = 3;
     [SerializeField] private float delayBetweenWaves = 3f;
+
+    [Header("Daftarkan Spawner di Sini")]
+    [SerializeField] private List<MonoBehaviour> spawnerObjects;
 
     private int currentWave = 0;
     private bool waveActive = false;
     private float waveEndTimer = 0f;
     private bool waitingDelay = false;
+    private List<IWaveBehaviour> spawners = new List<IWaveBehaviour>();
 
-    private ZombieSpawner zombieSpawner;
-
-    private void OnDisable()
+    private void Awake()
     {
-
+        foreach (var obj in spawnerObjects)
+        {
+            if (obj is IWaveBehaviour spawner)
+                spawners.Add(spawner);
+        }
     }
 
     private void Start()
     {
-        zombieSpawner = FindAnyObjectByType<ZombieSpawner>();
-        if (zombieSpawner == null)
+        if (spawners.Count == 0)
         {
-            Debug.LogError("WaveManager: ZombieSpawner tidak ditemukan!");
+            Debug.LogError("WaveManager: Tidak ada IWaveBehaviour ditemukan!");
             return;
         }
-
-        zombieSpawner.OnZombieDied += CheckWaveCleared;
 
         StartNextWave();
     }
 
     private void Update()
     {
-        // Delay antar wave
+        if (waveActive && spawners.All(s => s.IsWaveComplete()))
+        {
+            waveActive = false;
+            waitingDelay = true;
+            waveEndTimer = delayBetweenWaves;
+            Debug.Log($"Wave {currentWave} cleared! Next wave dalam {delayBetweenWaves}s");
+        }
+
         if (!waitingDelay) return;
 
         waveEndTimer -= Time.deltaTime;
@@ -59,24 +70,7 @@ public class WaveManager : MonoBehaviour
         waveActive = true;
 
         Debug.Log($"Wave {currentWave} dimulai!");
-        zombieSpawner.StartSpawning(totalZombiesPerWave);
-    }
-
-    private void CheckWaveCleared()
-    {
-        if (!waveActive) return;
-        if (!zombieSpawner.AllZombiesDead()) return;
-
-        waveActive = false;
-        waitingDelay = true;
-        waveEndTimer = delayBetweenWaves;
-
-        Debug.Log($"Wave {currentWave} cleared! Next wave dalam {delayBetweenWaves}s");
-    }
-
-    private void OnDestroy()
-    {
-        if (zombieSpawner != null)
-            zombieSpawner.OnZombieDied -= CheckWaveCleared;
+        foreach (var spawner in spawners)
+            spawner.StartWave(currentWave);
     }
 }

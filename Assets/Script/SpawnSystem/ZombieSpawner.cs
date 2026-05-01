@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public class ZombieSpawner : MonoBehaviour
+public class ZombieSpawner : MonoBehaviour, IWaveBehaviour
 {
     [Header("Spawner Settings")]
     [SerializeField] private GameObject zombiePrefab;
-    [SerializeField] private float spawnInterval = 5f;
+    [SerializeField] private float spawnInterval = 3.2f;
+    [SerializeField] private int totalZombiesPerWave = 20;
 
     [Header("Tilemap Settings")]
     [SerializeField] private Tilemap spawnTilemap;
@@ -36,17 +37,7 @@ public class ZombieSpawner : MonoBehaviour
         }
     }
 
-    // ── Public API untuk WaveManager ───────────────────────
-    public void StartSpawning(int limit)
-    {
-        zombiesSpawnedThisWave = 0;
-        zombiesAliveThisWave = 0;
-        zombieLimit = limit;
-
-        InvokeRepeating(nameof(SpawnZombie), 0f, spawnInterval);
-    }
-
-    public void StopSpawning()
+    private void StopSpawning()
     {
         CancelInvoke(nameof(SpawnZombie));
     }
@@ -91,14 +82,34 @@ public class ZombieSpawner : MonoBehaviour
         Debug.Log($"Zombie spawned ({zombiesSpawnedThisWave}/{zombieLimit})");
     }
 
+    // Implementasi IWaveBehaviour
+    public void StartWave(int waveNumber)
+    {
+        zombiesSpawnedThisWave = 0;
+        zombiesAliveThisWave = 0;
+        zombieLimit = Mathf.FloorToInt(totalZombiesPerWave * 1.2f * waveNumber);
+
+        InvokeRepeating(nameof(SpawnZombie), 0f, spawnInterval);
+    }
+
+    public void StopWave()
+    {
+        StopSpawning();
+    }
+
+    public bool IsWaveComplete()
+    {
+        return AllZombiesDead();
+    }
+
+    // Handle saat zombie mati
     private void HandleZombieDied()
     {
         zombiesAliveThisWave--;
-        OnZombieDied?.Invoke();
-
         Debug.Log($"Zombie mati. Sisa alive: {zombiesAliveThisWave}");
     }
 
     public bool AllZombiesDead()
         => zombiesSpawnedThisWave >= zombieLimit && zombiesAliveThisWave <= 0;
+
 }
